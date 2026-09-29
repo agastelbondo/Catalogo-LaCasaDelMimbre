@@ -11,6 +11,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,500;1,600&family=Karla:wght@400;600;700&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 
 <body>
@@ -152,30 +154,7 @@
 
     </div>
 
-    <div class="producto">
-
-        <img src="imagenes/base de cama en madera con cabecero.jpg" alt="Base de cama en madera">
-
-        <div class="info">
-
-            <h3>Base completa de cama en madera</h3>
-
-            <p class="descripcion">
-                Base de cama doble o individual en madera sencilla
-            </p>
-
-
-            <a class="boton"
-               href="#"
-               target="_blank">
-
-               Pedir por WhatsApp
-
-            </a>
-
-        </div>
-
-    </div>
+    
 
     <div class="producto">
 
@@ -878,77 +857,43 @@ document.querySelectorAll('.producto').forEach(producto => {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
-  // ¡ATENCIÓN! PEGA TU ENLACE LARGO (.csv) AQUÍ
-  const urlDelExcel = "https://docs.google.com/spreadsheets/d/e/2PACX-1vST8PjW-hteGIwEfj6p_J4xa8Wx5Vc_rEurmLrAjP1aYZ1gClH8yiw4TiMvrU-RMbQGpq4bZvU_MgTA/pub?output=csv";
-  const numeroWhatsAppDinamico = "573054714100";
-
-  Papa.parse(urlDelExcel, {
+// =======================================================
+// Cargar productos desde el Google Sheet
+// =======================================================
+Papa.parse('https://docs.google.com/spreadsheets/d/e/2PACX-1vS8XMYRRTYXGLe4yvDMDBtJyzOoyTGLVptCv0tqVL1V2WUDGx7EM6QoLM2XWGUs9GOZexIQe-KGcqYt/pub?output=csv', {
     download: true,
     header: true,
-    complete: function(resultados) {
-      const mueblesExcel = resultados.data;
+    complete: function(resultado) {
+        resultado.data.forEach(p => {
+            if (!p['Nombre del producto']) return; // salta filas vacías
 
-      mueblesExcel.forEach((mueble) => {
-        // Validación: Verifica que ningún campo clave esté vacío
-        if(mueble.Nombre && mueble.Foto && mueble.Categoria && mueble.Subcategoria) { 
-          
-          // LA CORRECCIÓN: .trim() quita los espacios invisibles, y .replace(/ /g, '-') cambia espacios intermedios por guiones
-          const categoria = mueble.Categoria.trim().toLowerCase().replace(/ /g, '-');
-          const subcategoria = mueble.Subcategoria.trim().toLowerCase().replace(/ /g, '-');
-          
-          // Arma el ID exactamente como lo tienes en tu HTML (ej: productos-cuarto-somieres-bases)
-          const idContenedor = `productos-${categoria}-${subcategoria}`;
-          
-          const contenedorDestino = document.getElementById(idContenedor);
+            const contenedor = document.getElementById(`productos-${p['Dónde va']}`);
+            if (!contenedor) return;
 
-          if(contenedorDestino) {
-            const mensajeWa = `Hola, quiero información sobre: ${mueble.Nombre.trim()}`;
-            const enlaceWa = `https://wa.me/${numeroWhatsAppDinamico}?text=${encodeURIComponent(mensajeWa)}`;
-
-            const tarjetaHTML = `
-              <div class="producto">
-                  <img src="${mueble.Foto.trim()}" alt="${mueble.Nombre.trim()}">
-                  <div class="info">
-                      <h3>${mueble.Nombre.trim()}</h3>
-                      <p class="descripcion">
-                          ${mueble.Descripcion ? mueble.Descripcion.trim() : 'Diseño artesanal a medida.'}
-                      </p>
-                      <a class="boton" href="${enlaceWa}" target="_blank">
-                         Pedir por WhatsApp
-                      </a>
-                  </div>
-              </div>
+            const div = document.createElement('div');
+            div.className = 'producto';
+            div.innerHTML = `
+                <img src="${p['formula']}" alt="${p['Nombre del producto']}">
+                <div class="info">
+                    <h3>${p['Nombre del producto']}</h3>
+                    <p class="descripcion">${p['Descripción']}</p>
+                    <a class="boton" href="#" target="_blank">Pedir por WhatsApp</a>
+                </div>
             `;
-            // Añade el mueble de Excel justo antes de los que tienes escritos a mano
-            contenedorDestino.innerHTML = tarjetaHTML + contenedorDestino.innerHTML;
-          } else {
-             // Si sigue sin encontrarlo, la consola de tu navegador te dirá exactamente qué ID intentó buscar
-             console.error(`❌ ERROR: Intenté meter "${mueble.Nombre}" en el ID "${idContenedor}" pero no existe en tu HTML.`);
-          }
-        }
-      });
-      
-      asignarLightboxAMueblesNuevos();
-    },
-    error: function(err) {
-      console.error("Error al cargar el Excel:", err);
-    }
-  });
+            contenedor.appendChild(div);
 
-  function asignarLightboxAMueblesNuevos() {
-    const modal = document.getElementById('modal-imagen');
-    const imagenAmpliada = document.getElementById('imagen-ampliada');
-    
-    document.querySelectorAll('.producto img').forEach(img => {
-      if(!img.dataset.clickAsignado){
-        img.addEventListener('click', () => {
-            imagenAmpliada.src = img.src;
-            modal.classList.add('activo');
+            const img = div.querySelector('img');
+            img.addEventListener('click', () => {
+                imagenAmpliada.src = img.src;
+                modal.classList.add('activo');
+            });
+
+            const boton = div.querySelector('.boton');
+            const mensaje = `Hola, quiero información sobre: ${p['Nombre del producto']}`;
+            boton.href = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
         });
-        img.dataset.clickAsignado = true;
-      }
-    });
-  }
+    }
+});
 </script>
 
 </body>
